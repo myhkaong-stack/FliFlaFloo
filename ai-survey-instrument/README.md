@@ -68,3 +68,21 @@ Render plan availability and free-resource policies can change. If the selected 
 
 ## Important limitations in this starter
 This is the foundation, not the final implementation of every requested feature. AI generation, real translation, audio/video recording, PDF/Word/Excel exports, advanced sentiment analysis, and secure offline sync are not implemented yet. They should be added as separate tested modules. Do not collect sensitive respondent information until access controls, consent, retention, and privacy notices have been reviewed.
+
+
+## AI chatbot (SurveyMate)
+
+The signed-in app includes a floating AI chatbot for survey design help. It uses Google's Gemini API through the Python backend; the API key is never sent to the browser or committed to GitHub.
+
+### Set up a free Gemini API key
+
+1. Open [Google AI Studio API keys](https://aistudio.google.com/app/apikey) and sign in.
+2. Create an API key using a **Free Tier** project, if available to your account.
+3. In the Render dashboard, open the `ai-survey-instrument` web service → **Environment**.
+4. Add `GEMINI_API_KEY` and paste your own key as its value. Keep it private.
+5. Confirm `GEMINI_MODEL` is set to `gemini-2.5-flash` (or change it to a model currently enabled for your free tier), then save and redeploy.
+6. For local testing, put `GEMINI_API_KEY=your-key-here` in your local `.env` file. Never commit `.env`.
+
+The Gemini API free tier has model-specific rate limits and availability; it is not unlimited. Review [Google's current billing and free-tier rules](https://ai.google.dev/gemini-api/docs/billing). Do not add billing if you want to remain on the free tier. API provider limits can change.
+
+The chatbot is a general helper and does not automatically read private survey responses or analytics. It only receives the current message and a short recent chat history.
