@@ -33,5 +33,28 @@
 </main>
 <footer class="container py-4 text-center text-secondary small">AI Survey Instrument · Project starter</footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+{% if session.get('user_id') %}
+<div id="survey-mate" class="chat-widget">
+  <button id="chat-toggle" class="chat-toggle" type="button" aria-expanded="false" aria-controls="chat-panel">💬 Ask SurveyMate</button>
+  <section id="chat-panel" class="chat-panel" hidden aria-label="AI chatbot">
+    <div class="chat-heading">
+      <div><strong>SurveyMate AI</strong><div class="small">Your survey design helper</div></div>
+      <button id="chat-close" type="button" class="chat-close" aria-label="Close chatbot">×</button>
+    </div>
+    <div id="chat-messages" class="chat-messages" aria-live="polite">
+      <div class="chat-bubble bot">Hi! I can help you write survey questions, choose a Likert scale, or understand survey analytics. What do you need?</div>
+    </div>
+    <form id="chat-form" class="chat-form">
+      <label class="visually-hidden" for="chat-input">Your message</label>
+      <textarea id="chat-input" rows="2" maxlength="2000" placeholder="Ask about your survey..." required></textarea>
+      <button id="chat-send" type="submit">Send</button>
+    </form>
+    <p class="chat-note">AI can make mistakes. Do not enter passwords, API keys, or sensitive personal data.</p>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/chatbot.js') }}" defer></script>
+{% endif %}
+
 </body>
 </html>

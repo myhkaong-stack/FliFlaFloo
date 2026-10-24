@@ -19,3 +19,24 @@ body { background: var(--surface); color: var(--ink); min-height: 100vh; }
 .analytics-item { padding: 1.1rem 0; border-bottom: 1px solid #edf0f6; }
 .analytics-item:last-child { border-bottom: 0; }
 footer { margin-top: 2rem; }
+
+
+/* SurveyMate AI chat widget */
+.chat-widget { position: fixed; right: 22px; bottom: 22px; z-index: 1050; font-size: 14px; }
+.chat-toggle { border: 0; border-radius: 999px; padding: 13px 18px; color: #fff; background: #3859d6; box-shadow: 0 8px 28px rgba(23,35,59,.25); font-weight: 700; cursor: pointer; }
+.chat-panel { width: min(365px, calc(100vw - 28px)); height: min(510px, calc(100vh - 105px)); background: #fff; border: 1px solid #dfe5f0; border-radius: 18px; box-shadow: 0 14px 45px rgba(23,35,59,.22); margin-bottom: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.chat-panel[hidden] { display: none; }
+.chat-heading { display: flex; align-items: center; justify-content: space-between; padding: 15px 16px; background: #17233b; color: #fff; }
+.chat-heading .small { color: #c8d0e2; margin-top: 2px; }
+.chat-close { color: #fff; border: 0; background: transparent; font-size: 26px; line-height: 1; cursor: pointer; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #f7f8fc; }
+.chat-bubble { max-width: 91%; border-radius: 14px; padding: 10px 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-bubble.bot { background: #fff; color: #17233b; border: 1px solid #e5e9f2; align-self: flex-start; }
+.chat-bubble.user { background: #3859d6; color: #fff; align-self: flex-end; }
+.chat-bubble.error { background: #fff0f0; color: #8d2020; border: 1px solid #ffd8d8; align-self: flex-start; }
+.chat-form { display: flex; align-items: stretch; gap: 8px; padding: 10px; background: #fff; border-top: 1px solid #e5e9f2; }
+.chat-form textarea { resize: none; min-width: 0; flex: 1; border: 1px solid #dbe1ec; border-radius: 10px; padding: 9px; outline-color: #8194ed; }
+.chat-form button { border: 0; border-radius: 10px; padding: 0 13px; background: #3859d6; color: white; font-weight: 700; }
+.chat-form button:disabled { opacity: .55; cursor: wait; }
+.chat-note { font-size: 11px; color: #69758b; padding: 0 12px 10px; margin: 0; background: #fff; }
+@media (max-width: 480px) { .chat-widget { right: 12px; bottom: 12px; } .chat-panel { width: calc(100vw - 24px); height: min(70vh, 520px); } }

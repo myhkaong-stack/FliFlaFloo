@@ -236,6 +236,59 @@ def delete_survey(survey_id):
     return redirect(url_for("dashboard"))
 
 
+@app.route("/api/chat", methods=["POST"])
+@login_required
+def ai_chat():
+    """AI helper for survey creation, question writing, and interpreting survey analytics."""
+    if not os.environ.get("GEMINI_API_KEY"):
+        return {"error": "The AI chatbot is not configured yet. Add GEMINI_API_KEY in Render Environment settings."}, 503
+
+    payload = request.get_json(silent=True) or {}
+    message = str(payload.get("message", "")).strip()
+    history = payload.get("history", [])
+
+    if not message:
+        return {"error": "Please type a message."}, 400
+    if len(message) > 2000:
+        return {"error": "Please keep each message under 2,000 characters."}, 400
+    if not isinstance(history, list):
+        history = []
+    # Keep a small, bounded context and accept only simple user/assistant text turns.
+    safe_history = []
+    for item in history[-8:]:
+        if isinstance(item, dict) and item.get("role") in ("user", "assistant"):
+            content = str(item.get("content", "")).strip()[:1500]
+            if content:
+                safe_history.append(f"{item['role'].capitalize()}: {content}")
+
+    prompt = (
+        "You are SurveyMate, the helpful AI assistant inside the AI Survey Instrument web app. "
+        "Help users create clear, unbiased survey and interview questions, choose structured, "
+        "semi-structured, or unstructured formats, understand Likert scales, improve survey design, "
+        "and interpret survey analytics. You can answer in English or Filipino/Tagalog when asked. "
+        "Use simple wording for students. Do not claim to access private survey records unless the "
+        "user includes the relevant data in the chat. Never ask users to share passwords, API keys, "
+        "or sensitive personal information. Keep answers practical and concise.\n\n"
+        + ("Recent conversation:\n" + "\n".join(safe_history) + "\n\n" if safe_history else "")
+        + "User: " + message
+    )
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        result = client.models.generate_content(
+            model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
+            contents=prompt,
+        )
+        answer = (getattr(result, "text", None) or "").strip()
+        if not answer:
+            return {"error": "The AI returned an empty response. Please try again."}, 502
+        return {"reply": answer}
+    except Exception:
+        app.logger.exception("AI chatbot request failed")
+        return {"error": "The AI service is temporarily unavailable. Check the API key, model, and free-tier quota in Google AI Studio."}, 502
+
+
 @app.route("/health")
 def health():
     return {"status": "ok"}
