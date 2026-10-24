@@ -311,9 +311,21 @@ def generate_questions():
         if not questions:
             return {"error": "The AI did not return usable questions. Please try again."}, 502
         return {"questions": questions, "count": len(questions)}
-    except Exception:
+    except Exception as exc:
+        # Log technical details on the server only; never send API credentials to the browser.
         app.logger.exception("AI question generation failed")
-        return {"error": "Could not generate questions. Check your Gemini API key, model availability, and free-tier quota."}, 502
+        error_text = str(exc).lower()
+        if "api_key_invalid" in error_text or "invalid api key" in error_text or "unauthorized" in error_text or "permission denied" in error_text:
+            message = "Gemini rejected the API key or the project does not have access. Check GEMINI_API_KEY in Render."
+        elif "429" in error_text or "resource_exhausted" in error_text or "quota" in error_text or "rate limit" in error_text:
+            message = "Gemini free-tier quota or rate limit reached. Wait and retry, or check your Google AI Studio quota."
+        elif "404" in error_text or "not found" in error_text:
+            message = "The selected Gemini model was not found or is unavailable to this API key. Check GEMINI_MODEL."
+        elif "timeout" in error_text or "deadline" in error_text:
+            message = "The request to Gemini timed out. Please retry with fewer questions."
+        else:
+            message = "Gemini request failed. Check Render Logs for the detailed error, and verify the API key, model, and free-tier quota."
+        return {"error": message}, 502
 
 
 @app.route("/api/chat", methods=["POST"])
