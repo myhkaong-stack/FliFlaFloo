@@ -6,6 +6,7 @@ A starter Flask web app for creating surveys and collecting responses.
 - User registration, login, and logout
 - Dashboard with survey, question, and response counts
 - Survey creation with up to 50 questions
+- AI question generation with selectable interview type, question format, language, target audience, focus areas, and question count
 - Structured, semi-structured, and unstructured survey type labels
 - Individual, group, and random interview mode labels
 - Public respondent survey link
