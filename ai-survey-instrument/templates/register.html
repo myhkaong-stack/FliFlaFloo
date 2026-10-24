@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block title %}Register · AI Survey Instrument{% endblock %}
+{% block content %}
+<div class="auth-wrap"><div class="card shadow-sm border-0"><div class="card-body p-4 p-md-5">
+  <div class="eyebrow mb-2">GET STARTED</div><h1 class="h3 fw-bold mb-2">Create your account</h1>
+  <p class="text-secondary mb-4">Create an account to start building surveys.</p>
+  <form method="post">
+    <label class="form-label">Full name</label><input class="form-control mb-3" name="name" required>
+    <label class="form-label">Email address</label><input class="form-control mb-3" type="email" name="email" required>
+    <label class="form-label">Password (at least 8 characters)</label><input class="form-control mb-4" type="password" name="password" minlength="8" required>
+    <button class="btn btn-primary w-100">Create account</button>
+  </form>
+  <p class="text-secondary mt-4 mb-0">Already registered? <a href="{{ url_for('login') }}">Log in</a></p>
+</div></div></div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block title %}{{ survey.title }}{% endblock %}
+{% block content %}
+<div class="survey-header mb-4"><div class="eyebrow">SURVEY RESPONSE</div><h1 class="h2 fw-bold">{{ survey.title }}</h1><p class="text-secondary mb-0">{{ survey.description }}</p></div>
+<form method="post" class="card border-0 shadow-sm"><div class="card-body p-4">
+  <div class="row g-3 mb-4"><div class="col-md-6"><label class="form-label">Your name (optional)</label><input class="form-control" name="respondent_name" placeholder="Anonymous"></div><div class="col-md-6"><label class="form-label">Respondent group (optional)</label><input class="form-control" name="respondent_group" placeholder="e.g. Student, Staff"></div></div>
+  {% for question in survey.questions %}<div class="response-question"><label class="form-label fw-semibold">{{ loop.index }}. {{ question.text }}</label><textarea class="form-control" name="question_{{ question.id }}" rows="2" placeholder="Type your answer..." required></textarea></div>{% endfor %}
+  <button class="btn btn-primary mt-3">Submit responses</button>
+</div></form>
+{% endblock %}

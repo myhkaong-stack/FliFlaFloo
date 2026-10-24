@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block title %}Create Survey · AI Survey Instrument{% endblock %}
+{% block content %}
+<div class="mb-4"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">← Dashboard</a><div class="eyebrow mt-3">SURVEY BUILDER</div><h1 class="h2 fw-bold">Create a survey</h1><p class="text-secondary">Add up to 50 questions. Enter one question per line.</p></div>
+<form method="post" class="card border-0 shadow-sm"><div class="card-body p-4">
+  <div class="row g-3">
+    <div class="col-12"><label class="form-label">Survey title *</label><input class="form-control" name="title" required maxlength="200" placeholder="e.g. Student Information System Feedback"></div>
+    <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2" placeholder="Explain the purpose of this survey"></textarea></div>
+    <div class="col-md-4"><label class="form-label">Interview type</label><select class="form-select" name="interview_type"><option>Structured</option><option>Semi-Structured</option><option>Unstructured</option></select></div>
+    <div class="col-md-4"><label class="form-label">Interview mode</label><select class="form-select" name="interview_mode"><option>Individual</option><option>Group</option><option>Random</option></select></div>
+    <div class="col-md-4"><label class="form-label">Survey language</label><select class="form-select" name="language"><option>English</option><option>Filipino / Tagalog</option><option>Cebuano</option><option>Ilocano</option><option>Hiligaynon</option></select></div>
+    <div class="col-12"><label class="form-label">Questions * <span class="text-secondary fw-normal">(one per line, maximum 50)</span></label><textarea class="form-control" name="questions" rows="9" required placeholder="How satisfied are you with the current system?&#10;How often do you use the system?&#10;What improvements would you recommend?"></textarea><div class="form-text">This initial version saves questions as text. Question types, Likert templates, and AI generation will be added in the next stage.</div></div>
+  </div>
+  <div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-light" href="{{ url_for('dashboard') }}">Cancel</a><button class="btn btn-primary">Save survey</button></div>
+</div></form>
+{% endblock %}
