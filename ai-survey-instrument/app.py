@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import time
 from datetime import datetime
 from functools import wraps
 
@@ -69,6 +70,46 @@ class Answer(db.Model):
     question_id = db.Column(db.Integer, db.ForeignKey("question.id"), nullable=False)
     answer_text = db.Column(db.Text, default="")
     question = db.relationship("Question")
+
+
+
+def generate_with_model_fallback(client, prompt):
+    """Try configured Gemini models in order, falling back on temporary service errors."""
+    models = [
+        os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
+        os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash"),
+        os.environ.get("GEMINI_FALLBACK_MODEL_2", "gemini-3.5-flash-lite"),
+    ]
+    # Preserve order while avoiding duplicate model names.
+    models = list(dict.fromkeys(model.strip() for model in models if model and model.strip()))
+    last_error = None
+
+    for model in models:
+        # Retry one time for transient overload/server errors, then try the next model.
+        for attempt in range(2):
+            try:
+                app.logger.info("Requesting Gemini response with model %s (attempt %s)", model, attempt + 1)
+                return client.models.generate_content(model=model, contents=prompt)
+            except Exception as exc:
+                last_error = exc
+                status_code = getattr(exc, "status_code", None)
+                error_text = str(exc).lower()
+                transient = (
+                    status_code in (429, 500, 502, 503, 504)
+                    or any(token in error_text for token in (
+                        "503", "unavailable", "high demand", "resource_exhausted",
+                        "rate limit", "429", "internal server error", "502", "504"
+                    ))
+                )
+                if not transient:
+                    raise
+                app.logger.warning("Gemini model %s temporarily failed: %s", model, exc)
+                if attempt == 0:
+                    time.sleep(1)
+
+    if last_error:
+        raise last_error
+    raise RuntimeError("No Gemini model is configured.")
 
 
 def login_required(view):
@@ -296,10 +337,7 @@ def generate_questions():
     try:
         from google import genai
         client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-        result = client.models.generate_content(
-            model=os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
-            contents=prompt,
-        )
+        result = generate_with_model_fallback(client, prompt)
         generated = (getattr(result, "text", None) or "").strip()
         questions = []
         for line in generated.splitlines():
@@ -323,8 +361,10 @@ def generate_questions():
             message = "The selected Gemini model was not found or is unavailable to this API key. Check GEMINI_MODEL."
         elif "timeout" in error_text or "deadline" in error_text:
             message = "The request to Gemini timed out. Please retry with fewer questions."
+        elif "503" in error_text or "unavailable" in error_text or "high demand" in error_text:
+            message = "Gemini is temporarily busy. The system tried the configured fallback models, but they are also unavailable. Please wait a minute and try again."
         else:
-            message = "Gemini request failed. Check Render Logs for the detailed error, and verify the API key, model, and free-tier quota."
+            message = "Gemini request failed after trying the configured models. Check Render Logs and verify your model settings."
         return {"error": message}, 502
 
 
@@ -368,17 +408,21 @@ def ai_chat():
     try:
         from google import genai
         client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-        result = client.models.generate_content(
-            model=os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
-            contents=prompt,
-        )
+        result = generate_with_model_fallback(client, prompt)
         answer = (getattr(result, "text", None) or "").strip()
         if not answer:
             return {"error": "The AI returned an empty response. Please try again."}, 502
         return {"reply": answer}
-    except Exception:
+    except Exception as exc:
         app.logger.exception("AI chatbot request failed")
-        return {"error": "The AI service is temporarily unavailable. Check the API key, model, and free-tier quota in Google AI Studio."}, 502
+        error_text = str(exc).lower()
+        if "503" in error_text or "unavailable" in error_text or "high demand" in error_text:
+            message = "Gemini is temporarily busy. The system tried the configured fallback models, but they are also unavailable. Please wait a minute and try again."
+        elif "429" in error_text or "resource_exhausted" in error_text or "quota" in error_text or "rate limit" in error_text:
+            message = "Gemini's rate limit or quota was reached across the configured models. Please wait and try again."
+        else:
+            message = "The AI service failed after trying the configured models. Check Render Logs and verify your model settings."
+        return {"error": message}, 502
 
 
 @app.route("/health")
