@@ -40,3 +40,5 @@ footer { margin-top: 2rem; }
 .chat-form button:disabled { opacity: .55; cursor: wait; }
 .chat-note { font-size: 11px; color: #69758b; padding: 0 12px 10px; margin: 0; background: #fff; }
 @media (max-width: 480px) { .chat-widget { right: 12px; bottom: 12px; } .chat-panel { width: calc(100vw - 24px); height: min(70vh, 520px); } }
+
+.ai-generator{border:1px solid #dfe5f5;border-radius:15px;background:linear-gradient(135deg,#f8f9ff,#fff);padding:1.25rem}.ai-generator h2{margin-bottom:.4rem}
