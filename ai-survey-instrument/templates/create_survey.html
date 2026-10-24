@@ -1,15 +1,20 @@
 {% extends "base.html" %}{% block title %}Create Survey · AI Survey Instrument{% endblock %}
 {% block content %}
-<div class="mb-4"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">← Dashboard</a><div class="eyebrow mt-3">SURVEY BUILDER</div><h1 class="h2 fw-bold">Create a survey</h1><p class="text-secondary">Add up to 50 questions. Enter one question per line.</p></div>
-<form method="post" class="card border-0 shadow-sm"><div class="card-body p-4">
-  <div class="row g-3">
-    <div class="col-12"><label class="form-label">Survey title *</label><input class="form-control" name="title" required maxlength="200" placeholder="e.g. Student Information System Feedback"></div>
-    <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2" placeholder="Explain the purpose of this survey"></textarea></div>
-    <div class="col-md-4"><label class="form-label">Interview type</label><select class="form-select" name="interview_type"><option>Structured</option><option>Semi-Structured</option><option>Unstructured</option></select></div>
-    <div class="col-md-4"><label class="form-label">Interview mode</label><select class="form-select" name="interview_mode"><option>Individual</option><option>Group</option><option>Random</option></select></div>
-    <div class="col-md-4"><label class="form-label">Survey language</label><select class="form-select" name="language"><option>English</option><option>Filipino / Tagalog</option><option>Cebuano</option><option>Ilocano</option><option>Hiligaynon</option></select></div>
-    <div class="col-12"><label class="form-label">Questions * <span class="text-secondary fw-normal">(one per line, maximum 50)</span></label><textarea class="form-control" name="questions" rows="9" required placeholder="How satisfied are you with the current system?&#10;How often do you use the system?&#10;What improvements would you recommend?"></textarea><div class="form-text">This initial version saves questions as text. Question types, Likert templates, and AI generation will be added in the next stage.</div></div>
-  </div>
-  <div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-light" href="{{ url_for('dashboard') }}">Cancel</a><button class="btn btn-primary">Save survey</button></div>
-</div></form>
+<div class="mb-4"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">← Dashboard</a><div class="eyebrow mt-3">SURVEY BUILDER</div><h1 class="h2 fw-bold">Create a survey</h1><p class="text-secondary">Generate questions with AI or write your own. Edit generated questions before saving.</p></div>
+<form method="post" class="card border-0 shadow-sm"><div class="card-body p-4"><div class="row g-3">
+<div class="col-12"><label class="form-label" for="survey-title">Survey title *</label><input id="survey-title" class="form-control" name="title" required maxlength="200" placeholder="e.g. Student Information System Feedback"></div>
+<div class="col-12"><label class="form-label" for="survey-description">Description</label><textarea id="survey-description" class="form-control" name="description" rows="2" placeholder="Explain the purpose of this survey"></textarea></div>
+<div class="col-md-4"><label class="form-label" for="interview-type">Interview type</label><select id="interview-type" class="form-select" name="interview_type"><option>Structured</option><option>Semi-Structured</option><option>Unstructured</option></select></div>
+<div class="col-md-4"><label class="form-label" for="interview-mode">Interview mode</label><select id="interview-mode" class="form-select" name="interview_mode"><option>Individual</option><option>Group</option><option>Random</option></select></div>
+<div class="col-md-4"><label class="form-label" for="survey-language">Survey language</label><select id="survey-language" class="form-select" name="language"><option>English</option><option>Filipino / Tagalog</option><option>Cebuano</option><option>Ilocano</option><option>Hiligaynon</option></select></div>
+</div>
+<section class="ai-generator mt-4 p-3 p-md-4"><div class="eyebrow">AI POWERED</div><h2 class="h5 fw-bold mt-1">AI Question Generator</h2><p class="text-secondary small">Choose the kind of interview questions you want the AI to create.</p><div class="row g-3">
+<div class="col-md-6"><label class="form-label" for="question-style">Question format</label><select id="question-style" class="form-select"><option>Mixed</option><option>Open-ended</option><option>Likert scale</option><option>Multiple choice</option></select><div class="form-text">This controls the answer style, separately from interview type.</div></div>
+<div class="col-md-6"><label class="form-label" for="question-count">Number of questions</label><select id="question-count" class="form-select">{% for n in [5,10,15,20,25,30,40,50] %}<option value="{{ n }}" {% if n == 10 %}selected{% endif %}>{{ n }} questions</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label" for="question-audience">Target respondents (optional)</label><input id="question-audience" class="form-control" maxlength="300" placeholder="e.g. First-year college students"></div>
+<div class="col-md-6"><label class="form-label" for="question-focus">Topics or focus areas (optional)</label><input id="question-focus" class="form-control" maxlength="500" placeholder="e.g. ease of use, speed, common errors"></div>
+<div class="col-12 d-flex flex-wrap align-items-center gap-3"><button id="generate-questions" class="btn btn-primary" type="button">✦ Generate questions with AI</button><span id="generator-status" class="small text-secondary" role="status" aria-live="polite">AI questions will appear below for review.</span></div></div></section>
+<div class="mt-4"><label class="form-label" for="survey-questions">Questions * <span class="text-secondary fw-normal">(one per line, maximum 50)</span></label><textarea id="survey-questions" class="form-control" name="questions" rows="12" required maxlength="30000" placeholder="Generate questions above or type your own, one per line."></textarea><div class="form-text">Generated questions are editable. Review them before saving.</div></div>
+<div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-light" href="{{ url_for('dashboard') }}">Cancel</a><button class="btn btn-primary" type="submit">Save survey</button></div></div></form>
+<script src="{{ url_for('static', filename='js/question_generator.js') }}" defer></script>
 {% endblock %}
