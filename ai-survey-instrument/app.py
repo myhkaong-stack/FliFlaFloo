@@ -236,6 +236,86 @@ def delete_survey(survey_id):
     return redirect(url_for("dashboard"))
 
 
+@app.route("/api/generate-questions", methods=["POST"])
+@login_required
+def generate_questions():
+    """Generate survey/interview questions from the user's selected options."""
+    if not os.environ.get("GEMINI_API_KEY"):
+        return {"error": "AI question generation is not configured. Add GEMINI_API_KEY in Render Environment settings."}, 503
+
+    payload = request.get_json(silent=True) or {}
+    title = str(payload.get("title", "")).strip()[:200]
+    description = str(payload.get("description", "")).strip()[:1200]
+    interview_type = str(payload.get("interview_type", "Structured")).strip()
+    question_style = str(payload.get("question_style", "Mixed")).strip()
+    language = str(payload.get("language", "English")).strip()
+    audience = str(payload.get("audience", "")).strip()[:300]
+    focus = str(payload.get("focus", "")).strip()[:500]
+    try:
+        count = max(1, min(50, int(payload.get("count", 10))))
+    except (TypeError, ValueError):
+        count = 10
+
+    allowed_types = {"Structured", "Semi-Structured", "Unstructured"}
+    allowed_styles = {"Open-ended", "Likert scale", "Multiple choice", "Mixed"}
+    allowed_languages = {"English", "Filipino / Tagalog", "Cebuano", "Ilocano", "Hiligaynon"}
+    if interview_type not in allowed_types:
+        interview_type = "Structured"
+    if question_style not in allowed_styles:
+        question_style = "Mixed"
+    if language not in allowed_languages:
+        language = "English"
+    if not title:
+        return {"error": "Enter a survey title first so the AI can make relevant questions."}, 400
+
+    type_guidance = {
+        "Structured": "Use clear, standardized questions in a consistent order. Keep questions specific and easy to answer.",
+        "Semi-Structured": "Provide a mix of planned core questions and flexible follow-up probes. Mark optional follow-up prompts with 'Follow-up:'.",
+        "Unstructured": "Use broad, open conversation prompts that invite detailed stories and exploration rather than rigid wording."
+    }
+    style_guidance = {
+        "Open-ended": "Every item should invite a written or spoken answer; avoid yes/no-only questions.",
+        "Likert scale": "Write statements suitable for a 5-point agreement scale. Prefix each statement with '[Likert 1-5]' and do not include the scale labels in the statement.",
+        "Multiple choice": "For each question, put answer options on the same line separated by ' | '. Include balanced options and an 'Other' option when appropriate.",
+        "Mixed": "Create a balanced mix of open-ended questions, Likert statements prefixed '[Likert 1-5]', and multiple-choice questions with options separated by ' | '."
+    }
+    prompt = (
+        "You are an expert research-methods assistant. Generate exactly " + str(count) +
+        " useful, ethical, unbiased survey/interview questions.\n"
+        "Survey title: " + title + "\n"
+        "Purpose/description: " + (description or "Not provided") + "\n"
+        "Interview type: " + interview_type + ". " + type_guidance[interview_type] + "\n"
+        "Requested question format: " + question_style + ". " + style_guidance[question_style] + "\n"
+        "Language: Write every question and answer option in " + language + ".\n"
+        "Target respondents: " + (audience or "Not specified") + "\n"
+        "Focus areas: " + (focus or "Choose relevant themes based on the survey title and purpose") + "\n\n"
+        "Rules: Avoid leading, double-barrelled, repetitive, or overly personal questions. "
+        "Number each question. Return only the numbered questions, one per line. "
+        "Do not add an introduction, conclusion, or markdown code fence."
+    )
+    try:
+        from google import genai
+        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        result = client.models.generate_content(
+            model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
+            contents=prompt,
+        )
+        generated = (getattr(result, "text", None) or "").strip()
+        questions = []
+        for line in generated.splitlines():
+            cleaned = line.strip()
+            cleaned = __import__("re").sub(r"^\s*(?:\d+[.)]|[-*•])\s*", "", cleaned).strip()
+            if cleaned:
+                questions.append(cleaned)
+        questions = questions[:count]
+        if not questions:
+            return {"error": "The AI did not return usable questions. Please try again."}, 502
+        return {"questions": questions, "count": len(questions)}
+    except Exception:
+        app.logger.exception("AI question generation failed")
+        return {"error": "Could not generate questions. Check your Gemini API key, model availability, and free-tier quota."}, 502
+
+
 @app.route("/api/chat", methods=["POST"])
 @login_required
 def ai_chat():
