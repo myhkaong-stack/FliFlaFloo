@@ -1,11 +1,41 @@
-{% extends "base.html" %}{% block title %}Analytics · {{ survey.title }}{% endblock %}
+{% extends "base.html" %}
+{% block title %}Data Analytics · {{ survey.title }}{% endblock %}
 {% block content %}
-<div class="mb-4"><a href="{{ url_for('survey_detail', survey_id=survey.id) }}" class="text-decoration-none">← Survey details</a><div class="eyebrow mt-3">SURVEY INSIGHTS</div><h1 class="h2 fw-bold">Analytics</h1><p class="text-secondary">{{ survey.title }}</p></div>
-<div class="row g-3 mb-4"><div class="col-md-6"><div class="stat-card"><div class="stat-label">Total responses</div><div class="stat-number">{{ responses|length }}</div></div></div><div class="col-md-6"><div class="stat-card"><div class="stat-label">Questions</div><div class="stat-number">{{ survey.questions|length }}</div></div></div></div>
-<div class="card border-0 shadow-sm mb-4"><div class="card-body p-4"><h2 class="h5 fw-bold">Question summaries</h2>
-{% for item in summaries %}<div class="analytics-item"><div class="d-flex flex-wrap justify-content-between gap-2"><div class="fw-semibold">{{ loop.index }}. {{ item.question.text }}</div><span class="badge text-bg-light">{{ item.count }} answers</span></div>
-{% if item.average is not none %}<div class="mt-2 small text-secondary">Numeric response average: <strong>{{ item.average }}</strong> (only values from 1–7 are included)</div>{% endif %}
-{% if item.answers %}<ul class="small text-secondary mt-2 mb-0">{% for answer in item.answers %}<li>{{ answer }}</li>{% endfor %}</ul>{% else %}<p class="small text-secondary mt-2 mb-0">No answers yet.</p>{% endif %}</div>{% endfor %}
-</div></div>
-<div class="card border-0 shadow-sm"><div class="card-body p-4"><h2 class="h5 fw-bold">Recent responses</h2>{% if responses %}<div class="table-responsive"><table class="table"><thead><tr><th>Respondent</th><th>Group</th><th>Submitted</th></tr></thead><tbody>{% for response in responses %}<tr><td>{{ response.respondent_name }}</td><td>{{ response.respondent_group or '—' }}</td><td>{{ response.submitted_at.strftime('%Y-%m-%d %H:%M') }} UTC</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="text-secondary mb-0">No responses have been submitted yet.</p>{% endif %}</div></div>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div><a href="{{ url_for('survey_detail', survey_id=survey.id) }}" class="text-decoration-none">← Survey details</a><div class="eyebrow mt-3">DATA ANALYTICS</div><h1 class="h2 fw-bold mb-1">Survey Analytics</h1><p class="text-secondary mb-0">{{ survey.title }} · {{ survey.interview_type }} · {{ survey.interview_mode }}</p></div>
+  <div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('reports') }}">All reports</a><button class="btn btn-primary" onclick="window.print()" type="button">Print / Save PDF</button></div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-label">Total responses</div><div class="stat-number">{{ responses|length }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-label">Survey questions</div><div class="stat-number">{{ survey.questions|length }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-label">Text responses analyzed</div><div class="stat-number">{{ text_answer_count }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-label">Answers received</div><div class="stat-number">{{ summaries|sum(attribute='count') }}</div></div></div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-lg-7"><section class="card border-0 shadow-sm h-100"><div class="card-body p-4"><h2 class="h5 fw-bold">Answers per question</h2><p class="small text-secondary">Shows how many non-empty answers each question received.</p><div style="height:300px"><canvas id="questionChart" aria-label="Bar chart showing answers per question"></canvas></div></div></section></div>
+  <div class="col-lg-5"><section class="card border-0 shadow-sm h-100"><div class="card-body p-4"><h2 class="h5 fw-bold">Text response sentiment</h2><p class="small text-secondary">Basic word-list estimate, not a definitive understanding of meaning.</p><div style="height:220px"><canvas id="sentimentChart" aria-label="Doughnut chart showing estimated sentiment"></canvas></div><div class="d-flex justify-content-around text-center mt-3"><div><div class="fw-bold">{{ sentiment.positive }}</div><div class="small text-secondary">Positive</div></div><div><div class="fw-bold">{{ sentiment.neutral }}</div><div class="small text-secondary">Neutral</div></div><div><div class="fw-bold">{{ sentiment.negative }}</div><div class="small text-secondary">Negative</div></div></div></div></section></div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-lg-5"><section class="card border-0 shadow-sm h-100"><div class="card-body p-4"><h2 class="h5 fw-bold">Frequently used keywords</h2><p class="small text-secondary">Common filler words are excluded.</p>{% if top_keywords %}<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Keyword</th><th class="text-end">Occurrences</th></tr></thead><tbody>{% for word, count in top_keywords %}<tr><td>{{ word }}</td><td class="text-end">{{ count }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="text-secondary mb-0">Not enough text responses to identify keywords yet.</p>{% endif %}</div></section></div>
+  <div class="col-lg-7"><section class="card border-0 shadow-sm h-100"><div class="card-body p-4"><h2 class="h5 fw-bold">Question summaries</h2>
+  {% for item in summaries %}<div class="py-3 border-bottom"><div class="d-flex justify-content-between gap-2"><strong>{{ loop.index }}. {{ item.question.text }}</strong><span class="badge text-bg-light">{{ item.count }} answers</span></div>
+  {% if item.average is not none %}<div class="small text-secondary mt-2">Numeric average: <strong>{{ item.average }}</strong> (values between 1 and 7)</div>{% endif %}
+  {% if item.answers %}<ul class="small text-secondary mt-2 mb-0">{% for answer in item.answers %}<li>{{ answer }}</li>{% endfor %}</ul>{% else %}<p class="small text-secondary mt-2 mb-0">No answers yet.</p>{% endif %}</div>{% endfor %}
+  </div></section></div>
+</div>
+<section class="card border-0 shadow-sm"><div class="card-body p-4"><h2 class="h5 fw-bold">Respondent overview</h2>{% if responses %}<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Respondent</th><th>Group</th><th>Submitted</th></tr></thead><tbody>{% for response in responses %}<tr><td>{{ response.respondent_name }}</td><td>{{ response.respondent_group or '—' }}</td><td>{{ response.submitted_at.strftime('%Y-%m-%d %H:%M') if response.submitted_at else '—' }} UTC</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="text-secondary mb-0">No responses have been submitted yet.</p>{% endif %}</div></section>
+<p class="small text-secondary mt-3">Sentiment is estimated using a simple English/Tagalog keyword list. Review the original responses before drawing conclusions.</p>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const labels = {{ summaries|map(attribute='question.text')|list|tojson }};
+  const counts = {{ summaries|map(attribute='count')|list|tojson }};
+  const sentiment = {{ [sentiment.positive, sentiment.neutral, sentiment.negative]|tojson }};
+  const q = document.getElementById("questionChart");
+  if (q) new Chart(q, {type:"bar",data:{labels:labels,datasets:[{label:"Answers",data:counts,backgroundColor:"#5b6ee1",borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{precision:0}}},plugins:{legend:{display:false}}}});
+  const s = document.getElementById("sentimentChart");
+  if (s) new Chart(s, {type:"doughnut",data:{labels:["Positive","Neutral","Negative"],datasets:[{data:sentiment,backgroundColor:["#22a06b","#aab3c5","#df5d6a"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}}});
+});
+</script>
+<style>@media print{.sidebar,.chat-widget,.btn,a.btn{display:none!important}.app-main{margin:0!important;padding:0!important}.card,.stat-card{break-inside:avoid;box-shadow:none!important}body{background:#fff!important}}</style>
 {% endblock %}
