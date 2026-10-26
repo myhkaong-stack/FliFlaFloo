@@ -242,6 +242,56 @@ def take_survey(survey_id):
     return render_template("take_survey.html", survey=survey)
 
 
+
+@app.route("/reports")
+@login_required
+def reports():
+    title_filter = request.args.get("title", "").strip()[:200]
+    group_filter = request.args.get("group", "").strip()[:120]
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+    survey_query = Survey.query.filter_by(owner_id=session["user_id"])
+    if title_filter:
+        survey_query = survey_query.filter(Survey.title.ilike("%" + title_filter + "%"))
+    surveys = survey_query.order_by(Survey.created_at.desc()).all()
+    survey_ids = [survey.id for survey in surveys]
+    response_query = Response.query.filter(Response.survey_id.in_(survey_ids)) if survey_ids else Response.query.filter(False)
+    if group_filter:
+        response_query = response_query.filter(Response.respondent_group.ilike("%" + group_filter + "%"))
+    try:
+        if start_date:
+            response_query = response_query.filter(Response.submitted_at >= datetime.strptime(start_date, "%Y-%m-%d"))
+        if end_date:
+            from datetime import timedelta
+            response_query = response_query.filter(Response.submitted_at < datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
+    except ValueError:
+        flash("Please enter valid date filters.", "warning")
+    responses = response_query.order_by(Response.submitted_at.desc()).all()
+    summaries = []
+    for survey in surveys:
+        matching = [response for response in responses if response.survey_id == survey.id]
+        summaries.append({"survey": survey, "questions": len(survey.questions),
+            "responses": len(matching), "latest_response": max((r.submitted_at for r in matching), default=None)})
+    if request.args.get("export") == "csv":
+        import csv, io
+        from flask import make_response
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Survey", "Interview Type", "Mode", "Language", "Respondent", "Group", "Submitted At", "Question", "Answer"])
+        for response in responses:
+            for answer in response.answers:
+                writer.writerow([response.survey.title, response.survey.interview_type, response.survey.interview_mode,
+                    response.survey.language, response.respondent_name, response.respondent_group,
+                    response.submitted_at.strftime("%Y-%m-%d %H:%M:%S") if response.submitted_at else "",
+                    answer.question.text if answer.question else "", answer.answer_text])
+        result = make_response("\\ufeff" + output.getvalue())
+        result.headers["Content-Type"] = "text/csv; charset=utf-8"
+        result.headers["Content-Disposition"] = "attachment; filename=fliflafloo-report.csv"
+        return result
+    return render_template("reports.html", survey_summaries=summaries, total_surveys=len(surveys),
+        total_responses=len(responses), total_questions=sum(len(s.questions) for s in surveys),
+        title_filter=title_filter, group_filter=group_filter, start_date=start_date, end_date=end_date)
+
 @app.route("/surveys/<int:survey_id>/analytics")
 @login_required
 def analytics(survey_id):
