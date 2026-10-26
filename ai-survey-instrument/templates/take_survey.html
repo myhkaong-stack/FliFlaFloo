@@ -1,9 +1,247 @@
-{% extends "base.html" %}{% block title %}{{ survey.title }}{% endblock %}
+{% extends "base.html" %}{% block title %}{{ survey.title }} · Live Survey{% endblock %}
 {% block content %}
-<div class="survey-header mb-4"><div class="eyebrow">SURVEY RESPONSE</div><h1 class="h2 fw-bold">{{ survey.title }}</h1><p class="text-secondary mb-0">{{ survey.description }}</p></div>
-<form method="post" class="card border-0 shadow-sm"><div class="card-body p-4">
-  <div class="row g-3 mb-4"><div class="col-md-6"><label class="form-label">Your name (optional)</label><input class="form-control" name="respondent_name" placeholder="Anonymous"></div><div class="col-md-6"><label class="form-label">Respondent group (optional)</label><input class="form-control" name="respondent_group" placeholder="e.g. Student, Staff"></div></div>
-  {% for question in survey.questions %}<div class="response-question"><label class="form-label fw-semibold">{{ loop.index }}. {{ question.text }}</label><textarea class="form-control" name="question_{{ question.id }}" rows="2" placeholder="Type your answer..." required></textarea></div>{% endfor %}
-  <button class="btn btn-primary mt-3">Submit responses</button>
-</div></form>
+<div class="survey-header mb-4">
+  <div class="eyebrow">LIVE SURVEY</div>
+  <h1 class="h2 fw-bold">{{ survey.title }}</h1>
+  <p class="text-secondary mb-0">{{ survey.description }}</p>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <h2 class="h5 fw-bold mb-1">Audio & camera tools</h2>
+        <p class="small text-secondary mb-0">Optional tools. Your browser will ask for permission before using your microphone or camera.</p>
+      </div>
+      <span id="live-status" class="badge text-bg-light">Not recording</span>
+    </div>
+    <div class="row g-3 mt-1">
+      <div class="col-lg-6">
+        <div class="p-3 rounded-3 border h-100">
+          <h3 class="h6 fw-bold">🎙️ Speak your answer</h3>
+          <p class="small text-secondary">Use voice typing to place spoken words into the answer field. Browser support varies.</p>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-primary btn-sm" id="voice-start" type="button">Start voice typing</button>
+            <button class="btn btn-outline-secondary btn-sm" id="voice-stop" type="button" disabled>Stop voice typing</button>
+          </div>
+          <p id="voice-message" class="small mt-2 mb-0" aria-live="polite">Voice typing is off.</p>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="p-3 rounded-3 border h-100">
+          <h3 class="h6 fw-bold">📷 Camera preview</h3>
+          <p class="small text-secondary">Camera preview only. Video is not uploaded or saved by this survey.</p>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <button class="btn btn-primary btn-sm" id="camera-start" type="button">Turn camera on</button>
+            <button class="btn btn-outline-secondary btn-sm" id="camera-stop" type="button" disabled>Turn camera off</button>
+          </div>
+          <video id="camera-preview" class="w-100 rounded-3 bg-dark" style="max-height:220px;display:none" autoplay playsinline muted></video>
+          <p id="camera-message" class="small mt-2 mb-0" aria-live="polite">Camera is off.</p>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-top">
+      <h3 class="h6 fw-bold">Optional audio recording</h3>
+      <p class="small text-secondary">Record a short audio clip on this device. It stays in this browser session unless you choose to download it. It is not attached to your submitted survey.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-outline-primary btn-sm" id="record-start" type="button">Start audio recording</button>
+        <button class="btn btn-outline-secondary btn-sm" id="record-stop" type="button" disabled>Stop recording</button>
+      </div>
+      <audio id="audio-playback" class="w-100 mt-3" controls hidden></audio>
+      <a id="audio-download" class="small d-block mt-2" hidden download="fliflafloo-audio-answer.webm">Download audio recording</a>
+      <p id="record-message" class="small mt-2 mb-0" aria-live="polite">No audio recording is active.</p>
+    </div>
+    <div class="alert alert-info small mt-3 mb-0">Privacy reminder: only enable audio or camera if you are comfortable. You can answer every question by typing instead. Do not record other people without their permission.</div>
+  </div>
+</div>
+
+<form method="post" class="card border-0 shadow-sm" id="survey-response-form">
+  <div class="card-body p-4">
+    <div class="row g-3 mb-4">
+      <div class="col-md-6"><label class="form-label" for="respondent_name">Your name (optional)</label><input id="respondent_name" class="form-control" name="respondent_name" placeholder="Anonymous"></div>
+      <div class="col-md-6"><label class="form-label" for="respondent_group">Respondent group (optional)</label><input id="respondent_group" class="form-control" name="respondent_group" placeholder="e.g. Student, Staff"></div>
+    </div>
+    {% for question in survey.questions %}
+    <div class="response-question">
+      <label class="form-label fw-semibold" for="question_{{ question.id }}">{{ loop.index }}. {{ question.text }}</label>
+      <textarea class="form-control answer-field" id="question_{{ question.id }}" name="question_{{ question.id }}" rows="3" placeholder="Type your answer, or use voice typing above..." required></textarea>
+      <button class="btn btn-sm btn-outline-secondary mt-2 insert-voice" type="button" data-target="question_{{ question.id }}">Use voice typing for this question</button>
+    </div>
+    {% endfor %}
+    <button class="btn btn-primary mt-3" type="submit">Submit responses</button>
+  </div>
+</form>
+
+<script>
+(() => {
+  const voiceStart = document.getElementById('voice-start');
+  const voiceStop = document.getElementById('voice-stop');
+  const voiceMessage = document.getElementById('voice-message');
+  const liveStatus = document.getElementById('live-status');
+  const cameraStart = document.getElementById('camera-start');
+  const cameraStop = document.getElementById('camera-stop');
+  const cameraPreview = document.getElementById('camera-preview');
+  const cameraMessage = document.getElementById('camera-message');
+  const recordStart = document.getElementById('record-start');
+  const recordStop = document.getElementById('record-stop');
+  const recordMessage = document.getElementById('record-message');
+  const playback = document.getElementById('audio-playback');
+  const download = document.getElementById('audio-download');
+  let activeTextarea = null;
+  let recognition = null;
+  let cameraStream = null;
+  let audioStream = null;
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let audioUrl = null;
+
+  function setVoiceTarget(target) {
+    activeTextarea = target;
+    if (recognition) voiceMessage.textContent = 'Voice typing target: ' + (target?.id || 'selected answer');
+  }
+
+  document.querySelectorAll('.insert-voice').forEach(button => {
+    button.addEventListener('click', () => {
+      setVoiceTarget(document.getElementById(button.dataset.target));
+      startVoiceTyping();
+    });
+  });
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function startVoiceTyping() {
+    if (!SpeechRecognition) {
+      voiceMessage.textContent = 'Voice typing is not supported in this browser. Try a recent version of Chrome or type your answer.';
+      return;
+    }
+    if (!activeTextarea) activeTextarea = document.querySelector('.answer-field');
+    if (!activeTextarea) {
+      voiceMessage.textContent = 'There are no answer fields available.';
+      return;
+    }
+    try {
+      recognition = new SpeechRecognition();
+      recognition.lang = {{ {'English':'en-US','Filipino':'fil-PH','Tagalog':'fil-PH','Spanish':'es-ES','Japanese':'ja-JP','Chinese':'zh-CN'} .get(survey.language, 'en-US') | tojson }};
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      let finalText = '';
+      recognition.onresult = event => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) finalText += event.results[i][0].transcript + ' ';
+          else interim += event.results[i][0].transcript;
+        }
+        if (finalText) activeTextarea.value = (activeTextarea.value.trim() ? activeTextarea.value.trim() + ' ' : '') + finalText.trim();
+        voiceMessage.textContent = interim ? 'Listening: ' + interim : 'Voice text added to the selected answer.';
+        finalText = '';
+      };
+      recognition.onerror = event => {
+        voiceMessage.textContent = 'Voice typing error (' + event.error + '). You can type your answer instead.';
+        stopVoiceTyping();
+      };
+      recognition.onend = () => {
+        voiceStart.disabled = false;
+        voiceStop.disabled = true;
+        liveStatus.textContent = 'Not recording';
+      };
+      recognition.start();
+      voiceStart.disabled = true;
+      voiceStop.disabled = false;
+      liveStatus.textContent = 'Voice typing active';
+      voiceMessage.textContent = 'Listening. Speak clearly; review the text before submitting.';
+    } catch (error) {
+      voiceMessage.textContent = 'Could not start voice typing. Check browser permissions and try again.';
+    }
+  }
+  function stopVoiceTyping() {
+    if (recognition) {
+      try { recognition.stop(); } catch (_) {}
+      recognition = null;
+    }
+    voiceStart.disabled = false;
+    voiceStop.disabled = true;
+    liveStatus.textContent = 'Not recording';
+    voiceMessage.textContent = 'Voice typing stopped. Please review your answer text.';
+  }
+  voiceStart.addEventListener('click', startVoiceTyping);
+  voiceStop.addEventListener('click', stopVoiceTyping);
+
+  cameraStart.addEventListener('click', async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      cameraMessage.textContent = 'Camera access requires a supported browser on HTTPS or localhost.';
+      return;
+    }
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+      cameraPreview.srcObject = cameraStream;
+      cameraPreview.style.display = 'block';
+      cameraStart.disabled = true;
+      cameraStop.disabled = false;
+      cameraMessage.textContent = 'Camera is on. Preview stays on this page and is not uploaded.';
+    } catch (error) {
+      cameraMessage.textContent = 'Camera permission was denied or the camera is unavailable. You can continue without it.';
+    }
+  });
+  function stopCamera() {
+    if (cameraStream) cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+    cameraPreview.srcObject = null;
+    cameraPreview.style.display = 'none';
+    cameraStart.disabled = false;
+    cameraStop.disabled = true;
+    cameraMessage.textContent = 'Camera is off.';
+  }
+  cameraStop.addEventListener('click', stopCamera);
+
+  recordStart.addEventListener('click', async () => {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      recordMessage.textContent = 'Audio recording is not supported in this browser. You can still use voice typing or type answers.';
+      return;
+    }
+    try {
+      audioStream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(audioStream);
+      mediaRecorder.ondataavailable = event => { if (event.data.size) audioChunks.push(event.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, {type: mediaRecorder.mimeType || 'audio/webm'});
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        audioUrl = URL.createObjectURL(blob);
+        playback.src = audioUrl;
+        playback.hidden = false;
+        download.href = audioUrl;
+        download.hidden = false;
+        recordMessage.textContent = 'Recording stopped. Play it back or download it. It has not been submitted to the server.';
+        if (audioStream) audioStream.getTracks().forEach(track => track.stop());
+        audioStream = null;
+        recordStart.disabled = false;
+        recordStop.disabled = true;
+        liveStatus.textContent = 'Not recording';
+      };
+      mediaRecorder.start();
+      recordStart.disabled = true;
+      recordStop.disabled = false;
+      liveStatus.textContent = 'Audio recording active';
+      recordMessage.textContent = 'Recording on this device. Select Stop recording when finished.';
+    } catch (error) {
+      recordMessage.textContent = 'Microphone permission was denied or the microphone is unavailable.';
+    }
+  });
+  function stopAudioRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  }
+  recordStop.addEventListener('click', stopAudioRecording);
+
+  document.getElementById('survey-response-form').addEventListener('submit', () => {
+    stopVoiceTyping();
+    stopCamera();
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') stopAudioRecording();
+  });
+  window.addEventListener('beforeunload', () => {
+    stopVoiceTyping();
+    stopCamera();
+    if (audioStream) audioStream.getTracks().forEach(track => track.stop());
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+  });
+})();
+</script>
 {% endblock %}
