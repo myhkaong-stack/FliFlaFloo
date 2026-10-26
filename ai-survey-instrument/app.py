@@ -298,15 +298,20 @@ def analytics(survey_id):
     survey = Survey.query.filter_by(id=survey_id, owner_id=session["user_id"]).first_or_404()
     responses = Response.query.filter_by(survey_id=survey.id).order_by(Response.submitted_at.desc()).all()
     summaries = []
+    all_text = []
+    positive_words = {"good", "great", "excellent", "easy", "helpful", "satisfied", "love", "useful", "fast", "clear", "happy", "improve", "improved", "convenient", "friendly", "maayos", "maganda", "mabuti", "madali", "masaya"}
+    negative_words = {"bad", "poor", "difficult", "hard", "slow", "confusing", "problem", "issue", "delay", "delayed", "unsatisfied", "hate", "broken", "worse", "frustrating", "mahirap", "pangit", "mabagal", "problema", "malungkot"}
+    stop_words = {"the", "and", "for", "that", "this", "with", "you", "your", "are", "was", "were", "have", "has", "had", "from", "but", "not", "what", "when", "where", "how", "why", "can", "could", "would", "should", "will", "about", "into", "their", "there", "they", "them", "then", "than", "very", "just", "also", "our", "its", "it", "a", "an", "to", "of", "in", "on", "is", "i", "my", "we", "me", "be", "as", "at", "or", "if", "so", "do"}
+    import re
     for question in survey.questions:
         answers = Answer.query.join(Response).filter(
             Response.survey_id == survey.id, Answer.question_id == question.id
         ).all()
-        nonempty = [a.answer_text for a in answers if a.answer_text]
+        nonempty = [a.answer_text.strip() for a in answers if a.answer_text and a.answer_text.strip()]
         numeric = []
         for answer in nonempty:
             try:
-                n = int(answer)
+                n = float(answer)
                 if 1 <= n <= 7:
                     numeric.append(n)
             except ValueError:
@@ -314,7 +319,21 @@ def analytics(survey_id):
         summaries.append({"question": question, "count": len(nonempty),
                           "average": round(sum(numeric) / len(numeric), 2) if numeric else None,
                           "answers": nonempty[:8]})
-    return render_template("analytics.html", survey=survey, responses=responses, summaries=summaries)
+        if question.question_type.lower() not in ("likert", "rating", "scale", "number"):
+            all_text.extend(nonempty)
+    sentiment = {"positive": 0, "neutral": 0, "negative": 0}
+    word_counts = {}
+    for answer in all_text:
+        words = re.findall(r"[a-zA-ZÀ-ÿ']+", answer.lower())
+        positive = sum(word in positive_words for word in words)
+        negative = sum(word in negative_words for word in words)
+        sentiment["positive" if positive > negative else "negative" if negative > positive else "neutral"] += 1
+        for word in words:
+            if len(word) > 2 and word not in stop_words and word not in positive_words and word not in negative_words:
+                word_counts[word] = word_counts.get(word, 0) + 1
+    top_keywords = sorted(word_counts.items(), key=lambda item: (-item[1], item[0]))[:10]
+    return render_template("analytics.html", survey=survey, responses=responses, summaries=summaries,
+                           sentiment=sentiment, top_keywords=top_keywords, text_answer_count=len(all_text))
 
 
 @app.route("/surveys/<int:survey_id>/delete", methods=["POST"])
