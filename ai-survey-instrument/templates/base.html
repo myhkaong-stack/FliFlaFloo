@@ -10,7 +10,7 @@
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark app-nav">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') if session.get('user_id') else url_for('login') }}">AI Survey Instrument</a>
+    <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') if session.get('user_id') else url_for('login') }}"><span class="brand-mark" aria-hidden="true">F</span><span>FliFlaFloo <span class="fw-normal text-white-50">· AI Survey</span></span></a>
     <div class="d-flex align-items-center gap-3">
       {% if session.get('user_id') %}
         <span class="text-white-50 small">Hi, {{ session.get('user_name', 'User') }}</span>
@@ -31,7 +31,7 @@
   {% endwith %}
   {% block content %}{% endblock %}
 </main>
-<footer class="container py-4 text-center text-secondary small">AI Survey Instrument · Project starter</footer>
+<footer class="container py-4 text-center text-secondary small">FliFlaFloo · AI Survey Instrument <span class="mx-1">✦</span> Make better questions. Discover better insights.</footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 {% if session.get('user_id') %}
