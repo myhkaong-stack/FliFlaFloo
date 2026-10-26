@@ -1,24 +1,50 @@
-{% extends "base.html" %}{% block title %}Dashboard · AI Survey Instrument{% endblock %}
+{% extends "base.html" %}{% block title %}Dashboard · FliFlaFloo AI Survey{% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-  <div><div class="eyebrow">WORKSPACE</div><h1 class="h2 fw-bold mb-1">Dashboard</h1><p class="text-secondary mb-0">Create surveys and review collected responses.</p></div>
-  <a class="btn btn-primary" href="{{ url_for('create_survey') }}">+ Create survey</a>
+<section class="workspace-hero mb-4 mb-md-5">
+  <div class="row align-items-center g-4 position-relative" style="z-index:1">
+    <div class="col-lg-8">
+      <div class="eyebrow mb-2">YOUR RESEARCH WORKSPACE</div>
+      <h1 class="display-6 fw-bold mb-2">Good to see you, {{ session.get('user_name', 'Researcher') }}.</h1>
+      <p class="mb-3">Create smarter surveys, collect meaningful feedback, and turn responses into useful insights.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="hero-chip">✦ AI question generator</span>
+        <span class="hero-chip">▥ Response analytics</span>
+      </div>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+      <a class="btn btn-light btn-lg" href="{{ url_for('create_survey') }}" style="color:#5144c9">＋ Create a survey</a>
+      <div class="small mt-2" style="color:rgba(255,255,255,.7)">Start with a title. Let AI help with the questions.</div>
+    </div>
+  </div>
+</section>
+
+<div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+  <div><div class="eyebrow">AT A GLANCE</div><h2 class="h4 section-heading mb-0">Workspace overview</h2></div>
+  <span class="small text-secondary">Your account summary</span>
 </div>
-<div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="stat-card"><div class="stat-label">My surveys</div><div class="stat-number">{{ surveys|length }}</div></div></div>
-  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Questions</div><div class="stat-number">{{ question_count }}</div></div></div>
-  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Responses</div><div class="stat-number">{{ response_count }}</div></div></div>
+<div class="row g-3 mb-4 mb-md-5">
+  <div class="col-sm-6 col-lg-4"><div class="stat-card h-100"><div class="stat-label">MY SURVEYS</div><div class="stat-number">{{ surveys|length }}</div><div class="small text-secondary mt-2">Surveys you have created</div></div></div>
+  <div class="col-sm-6 col-lg-4"><div class="stat-card h-100"><div class="stat-label">TOTAL QUESTIONS</div><div class="stat-number">{{ question_count }}</div><div class="small text-secondary mt-2">Questions across your surveys</div></div></div>
+  <div class="col-sm-6 col-lg-4"><div class="stat-card h-100"><div class="stat-label">RESPONSES RECEIVED</div><div class="stat-number">{{ response_count }}</div><div class="small text-secondary mt-2">Submitted survey responses</div></div></div>
 </div>
-<div class="card border-0 shadow-sm"><div class="card-body p-0">
-  <div class="p-3 p-md-4 border-bottom"><h2 class="h5 fw-bold mb-0">Your surveys</h2></div>
+
+<div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+  <div><div class="eyebrow">KEEP YOUR RESEARCH MOVING</div><h2 class="h4 section-heading mb-0">Your surveys</h2></div>
+  {% if surveys %}<a class="btn btn-outline-primary" href="{{ url_for('create_survey') }}">＋ New survey</a>{% endif %}
+</div>
+<div class="card border-0"><div class="card-body p-0">
   {% if surveys %}
-  <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th class="ps-4">Survey</th><th>Type</th><th>Questions</th><th>Responses</th><th class="text-end pe-4">Actions</th></tr></thead><tbody>
+  <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th class="ps-4">Survey</th><th>Type</th><th>Questions</th><th>Responses</th><th class="text-end pe-4">Action</th></tr></thead><tbody>
   {% for survey in surveys %}<tr>
-    <td class="ps-4"><div class="fw-semibold">{{ survey.title }}</div><div class="small text-secondary">{{ survey.created_at.strftime('%b %d, %Y') }}</div></td>
-    <td><span class="badge text-bg-light">{{ survey.interview_type }}</span></td><td>{{ survey.questions|length }}</td><td>{{ survey.responses|length }}</td>
-    <td class="text-end pe-4"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('survey_detail', survey_id=survey.id) }}">Open</a></td>
+    <td class="ps-4"><div class="fw-bold">{{ survey.title }}</div><div class="small text-secondary mt-1">Created {{ survey.created_at.strftime('%b %d, %Y') }}</div></td>
+    <td><span class="badge text-bg-light">{{ survey.interview_type }}</span></td>
+    <td><span class="fw-semibold">{{ survey.questions|length }}</span></td>
+    <td><span class="fw-semibold">{{ survey.responses|length }}</span></td>
+    <td class="text-end pe-4"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('survey_detail', survey_id=survey.id) }}">Open survey →</a></td>
   </tr>{% endfor %}
   </tbody></table></div>
-  {% else %}<div class="empty-state"><div class="display-6 mb-2">✦</div><h3 class="h5 fw-bold">Your first survey starts here</h3><p class="text-secondary">Create a survey and add questions to begin collecting responses.</p><a class="btn btn-primary" href="{{ url_for('create_survey') }}">Create your first survey</a></div>{% endif %}
+  {% else %}
+  <div class="empty-state"><div class="display-6 mb-3">✦</div><h3 class="h5 fw-bold">Your research starts here</h3><p class="text-secondary mx-auto" style="max-width:430px">Create your first survey, use AI to draft questions, and collect responses in one organized workspace.</p><a class="btn btn-primary" href="{{ url_for('create_survey') }}">Create your first survey →</a></div>
+  {% endif %}
 </div></div>
 {% endblock %}
