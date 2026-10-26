@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Reports & Analytics · FliFlaFloo{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+  <div><div class="eyebrow">RESEARCH WORKSPACE</div><h1 class="h2 fw-bold">Reports &amp; Analytics</h1><p class="text-secondary mb-0">Filter surveys and review response totals.</p></div>
+  <div class="d-flex gap-2 no-print"><button class="btn btn-outline-primary" onclick="window.print()">Print / Save PDF</button><a class="btn btn-primary" href="{{ url_for('reports', title=title_filter, group=group_filter, start_date=start_date, end_date=end_date, export='csv') }}">Export CSV for Excel</a></div>
+</div>
+<div class="row g-3 mb-4">
+<div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-label">Surveys</div><div class="stat-number">{{ total_surveys }}</div></div></div>
+<div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-label">Responses</div><div class="stat-number">{{ total_responses }}</div></div></div>
+<div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-label">Questions</div><div class="stat-number">{{ total_questions }}</div></div></div>
+<div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-label">Avg. responses / survey</div><div class="stat-number">{{ (total_responses / total_surveys)|round(1) if total_surveys else 0 }}</div></div></div>
+</div>
+<div class="card border-0 shadow-sm mb-4 no-print"><div class="card-body p-4"><h2 class="h5 fw-bold">Filter reports</h2>
+<form method="get" class="row g-3 align-items-end">
+<div class="col-md-4"><label class="form-label" for="title">Survey title</label><input class="form-control" id="title" name="title" value="{{ title_filter }}" placeholder="Search title"></div>
+<div class="col-md-3"><label class="form-label" for="group">Respondent group</label><input class="form-control" id="group" name="group" value="{{ group_filter }}" placeholder="e.g. Students"></div>
+<div class="col-md-2"><label class="form-label" for="start_date">From</label><input class="form-control" type="date" id="start_date" name="start_date" value="{{ start_date }}"></div>
+<div class="col-md-2"><label class="form-label" for="end_date">To</label><input class="form-control" type="date" id="end_date" name="end_date" value="{{ end_date }}"></div>
+<div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Go</button></div><div class="col-12"><a href="{{ url_for('reports') }}">Clear filters</a></div>
+</form></div></div>
+<div class="card border-0 shadow-sm"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">Your survey reports</h2>
+{% if survey_summaries %}<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Survey</th><th>Type</th><th>Mode</th><th>Questions</th><th>Responses</th><th>Latest response</th><th></th></tr></thead><tbody>
+{% for item in survey_summaries %}<tr><td><strong>{{ item.survey.title }}</strong><div class="small text-secondary">{{ item.survey.language }}</div></td><td>{{ item.survey.interview_type }}</td><td>{{ item.survey.interview_mode }}</td><td>{{ item.questions }}</td><td>{{ item.responses }}</td><td>{{ item.latest_response.strftime('%Y-%m-%d') if item.latest_response else '—' }}</td><td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('analytics', survey_id=item.survey.id) }}">View analytics</a></td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p class="text-secondary mb-0">No surveys match your filters yet. Clear filters or create a survey.</p>{% endif %}
+</div></div><p class="small text-secondary mt-3">CSV exports can be opened in Excel. Print / Save PDF uses your browser's print dialog.</p>
+{% endblock %}
