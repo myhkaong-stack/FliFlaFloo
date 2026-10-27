@@ -26,6 +26,20 @@
 .likert-submit{background:#2563ff;border:0;border-radius:12px;padding:13px 24px;font-weight:700}
 @media(max-width:760px){.likert-options{grid-template-columns:repeat(2,minmax(0,1fr))}.likert-option:last-child{grid-column:span 2}.likert-option label{min-height:110px}.likert-heading,.likert-question{padding:22px 18px}}
 @media print{.likert-submit,.likert-person{display:none}.likert-question{break-inside:avoid;box-shadow:none}}
+
+/* Force readable black text on this survey even when global dark-theme styles apply */
+.likert-page, .likert-page h1, .likert-page h2, .likert-page p,
+.likert-page label, .likert-page .form-label, .likert-page .likert-question-title,
+.likert-page .likert-select-label, .likert-page .likert-word,
+.likert-page .likert-note summary { color:#000000 !important; }
+.likert-page .likert-eyebrow, .likert-page .likert-number { color:#2563ff !important; }
+.likert-page input.form-control, .likert-page textarea.form-control {
+  color:#000000 !important; background:#ffffff !important; border-color:#cbd5e1 !important;
+}
+.likert-page input.form-control::placeholder, .likert-page textarea.form-control::placeholder {
+  color:#64748b !important; opacity:1;
+}
+
 </style>
 <div class="likert-page">
   <header class="likert-heading">
