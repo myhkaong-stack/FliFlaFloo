@@ -8,7 +8,7 @@
   button.disabled=true;button.textContent="Generating…";status.textContent="Generating based on your selected interview type, format, and language…";
   try{
    const response=await fetch("/api/generate-questions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,description:el("survey-description").value.trim(),interview_type:el("interview-type").value,language:el("survey-language").value,question_style:el("question-style").value,count:Number(el("question-count").value),audience:el("question-audience").value.trim(),focus:el("question-focus").value.trim()})});
-   const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"Question generation failed.");
+   const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||(response.status>=500?"The AI service timed out or returned a server error. Please try again with fewer questions. If it keeps happening, check Render Logs and Gemini model settings.":"Question generation failed (HTTP "+response.status+")."));
    questions.value=data.questions.join("\n");status.textContent="Generated "+data.count+" questions. Review and edit them below.";questions.scrollIntoView({behavior:"smooth",block:"center"});questions.focus({preventScroll:true});
   }catch(error){status.textContent=error.message||"Could not generate questions. Please try again.";}
   finally{button.disabled=false;button.textContent="✦ Generate questions with AI";}
