@@ -13,6 +13,10 @@
 .likert-question-title{font-size:clamp(1.15rem,2vw,1.8rem);line-height:1.4;font-weight:800;color:#000000;margin:0 0 26px}
 .likert-select-label{font-size:.95rem;color:#000000;letter-spacing:.03em;text-transform:uppercase;margin-bottom:16px}
 .likert-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.answer-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.answer-choice{display:flex;align-items:center;gap:10px;padding:14px 16px;border:1px solid #dce5f1;border-radius:14px;background:#f7f9fc;color:#000;cursor:pointer}
+.answer-choice input{accent-color:#2563ff;flex-shrink:0}
+.answer-textarea{width:100%;min-height:120px;padding:14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;color:#000}
 .likert-option{position:relative;min-width:0}
 .likert-option input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}
 .likert-option label{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;min-height:145px;height:100%;padding:16px 10px;background:#f7f9fc;border:1px solid #dce5f1;border-radius:20px;color:#152238;cursor:pointer;transition:all .18s ease}
@@ -63,28 +67,47 @@
     </section>
 
     {% for question in survey.questions %}
+    {% set question_text = question.text %}
+    {% set normalized_type = (question.question_type or 'text')|lower|replace('-', '_')|replace(' ', '_') %}
+    {% set is_likert = normalized_type in ['likert', 'likert_scale', 'scale'] or '[likert 1-5]' in question_text|lower or '[likert 1–5]' in question_text|lower %}
+    {% set has_options = ' | ' in question_text %}
+    {% set display_question = question_text|replace('[Likert 1-5]', '')|replace('[Likert 1–5]', '')|trim %}
     <section class="likert-question">
-      <h2 class="likert-question-title">{{ loop.index }}. {{ question.text }}</h2>
+      <h2 class="likert-question-title">{{ loop.index }}. {{ display_question.split(' | ')[0] if has_options and not is_likert else display_question }}</h2>
+      {% if is_likert %}
       <p class="likert-select-label">Select your answer:</p>
       <div class="likert-options" role="radiogroup" aria-label="Answer for question {{ loop.index }}">
         {% for value, label in [(1, 'Strongly Disagree'), (2, 'Disagree'), (3, 'Neutral / Undecided'), (4, 'Agree'), (5, 'Strongly Agree')] %}
         <div class="likert-option">
           <input type="radio" id="question_{{ question.id }}_{{ value }}" name="question_{{ question.id }}" value="{{ value }}" required>
-          <label for="question_{{ question.id }}_{{ value }}">
-            <span class="likert-number">{{ value }}</span>
-            <span class="likert-word">{{ label }}</span>
-          </label>
+          <label for="question_{{ question.id }}_{{ value }}"><span class="likert-number">{{ value }}</span><span class="likert-word">{{ label }}</span></label>
         </div>
         {% endfor %}
       </div>
-      <details class="likert-note">
-        <summary>＋ Add Field Observation Note (optional)</summary>
-        <textarea class="form-control" rows="2" name="note_{{ question.id }}" placeholder="Add an optional note about this question..."></textarea>
-      </details>
+      {% elif has_options %}
+      <p class="likert-select-label">Select your answer:</p>
+      {% set question_parts = question_text.split(' | ') %}
+      <div class="answer-options" role="radiogroup" aria-label="Answer for question {{ loop.index }}">
+        {% for option in question_parts[1:] %}
+        <label class="answer-choice"><input type="radio" name="question_{{ question.id }}" value="{{ option|trim }}" required><span>{{ option|trim }}</span></label>
+        {% endfor %}
+      </div>
+      {% elif normalized_type in ['multiple_choice', 'choice', 'radio', 'select', 'dropdown'] %}
+      <p class="likert-select-label">Select your answer:</p>
+      <div class="answer-options">
+        {% for option in ['Option 1', 'Option 2', 'Option 3', 'Other'] %}
+        <label class="answer-choice"><input type="radio" name="question_{{ question.id }}" value="{{ option }}" required><span>{{ option }}</span></label>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="likert-select-label">Write your answer:</p>
+      <textarea class="answer-textarea" name="question_{{ question.id }}" rows="4" required placeholder="Type your answer here..."></textarea>
+      {% endif %}
+      <details class="likert-note"><summary>＋ Add Field Observation Note (optional)</summary><textarea class="form-control" rows="2" name="note_{{ question.id }}" placeholder="Add an optional note about this question..."></textarea></details>
     </section>
     {% endfor %}
 
-    <button class="btn btn-primary likert-submit mt-2" type="submit">Submit responses</button>
+        <button class="btn btn-primary likert-submit mt-2" type="submit">Submit responses</button>
   </form>
 </div>
 {% endblock %}
