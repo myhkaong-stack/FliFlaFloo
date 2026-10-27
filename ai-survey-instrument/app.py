@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-change-this-key")
 
-database_url = os.environ.get("DATABASE_URL", "sqlite:///ai_survey.db")
+database_url = os.environ.get("SUPABASE_DB_URL") or os.environ.get("DATABASE_URL", "sqlite:///ai_survey.db")
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 # SQLAlchemy 2.x PostgreSQL driver compatibility for Render URLs
