@@ -476,7 +476,10 @@ def ai_chat():
 
     try:
         from google import genai
-        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        client = genai.Client(
+    api_key=os.environ["GEMINI_API_KEY"],
+    http_options={"timeout": 8000}
+)
         result = generate_with_model_fallback(client, prompt)
         answer = (getattr(result, "text", None) or "").strip()
         if not answer:
