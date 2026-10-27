@@ -174,7 +174,13 @@ def logout():
 
 
 def add_demo_data_for_user(user_id):
-    """Add two sample survey topics and realistic sample responses without duplicating them."""
+    """Add demo surveys only when the owner exists in the active database."""
+    # Guard here as well as in the dashboard route, so stale sessions can never
+    # create surveys that violate the survey.owner_id foreign key.
+    owner = db.session.get(User, user_id) if user_id is not None else None
+    if owner is None:
+        return False
+
     demo_surveys = [
         {
             "title": "Student Information System Satisfaction",
@@ -253,7 +259,13 @@ def add_demo_data_for_user(user_id):
                     question_id=question.id,
                     answer_text=answer_text,
                 ))
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Could not add demo survey data for user_id=%s", user_id)
+        raise
+    return True
 
 
 @app.route("/dashboard")
@@ -269,7 +281,10 @@ def dashboard():
         return redirect(url_for("login"))
 
     # Add sample content only when a valid user visits the dashboard.
-    add_demo_data_for_user(user.id)
+    if not add_demo_data_for_user(user.id):
+        session.clear()
+        flash("Your session is no longer valid. Please log in again.", "warning")
+        return redirect(url_for("login"))
     surveys = Survey.query.filter_by(owner_id=user.id).order_by(Survey.created_at.desc()).all()
     survey_ids = [s.id for s in surveys]
     response_count = Response.query.filter(Response.survey_id.in_(survey_ids)).count() if survey_ids else 0
