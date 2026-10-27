@@ -675,6 +675,11 @@ def ai_chat():
         return {"error": message}, 502
 
 
+@app.route("/offline")
+def offline_page():
+    return render_template("offline.html")
+
+
 @app.route("/health")
 def health():
     return {"status": "ok"}
