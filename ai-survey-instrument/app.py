@@ -173,9 +173,94 @@ def logout():
     return redirect(url_for("login"))
 
 
+def add_demo_data_for_user(user_id):
+    """Add two sample survey topics and realistic sample responses without duplicating them."""
+    demo_surveys = [
+        {
+            "title": "Student Information System Satisfaction",
+            "description": "Sample feedback about enrollment, grades, schedules, and access to student records. Demo data only.",
+            "interview_type": "Structured",
+            "interview_mode": "Individual",
+            "language": "English",
+            "questions": [
+                ("How satisfied are you with the student information system? (1-5)", "likert", "Satisfaction"),
+                ("How easy is it to check grades and class schedules? (1-5)", "likert", "Ease of Use"),
+                ("What should be improved in the system?", "text", "Suggestions"),
+            ],
+            "responses": [
+                ("Alex Santos", "First-year students", ["4", "4", "The system is helpful, but loading grades could be faster."]),
+                ("Jamie Reyes", "Second-year students", ["5", "4", "It is easy to use and convenient for checking schedules."]),
+                ("Taylor Cruz", "First-year students", ["3", "3", "Sometimes it is confusing to find enrollment information."]),
+            ],
+        },
+        {
+            "title": "Online Learning Experience",
+            "description": "Sample feedback about online classes, learning materials, and communication with instructors. Demo data only.",
+            "interview_type": "Semi-Structured",
+            "interview_mode": "Individual",
+            "language": "English",
+            "questions": [
+                ("How useful are the online learning materials? (1-5)", "likert", "Learning Materials"),
+                ("How satisfied are you with communication during online classes? (1-5)", "likert", "Communication"),
+                ("What is the biggest challenge you experience in online learning?", "text", "Challenges"),
+            ],
+            "responses": [
+                ("Morgan Dela Cruz", "College students", ["5", "4", "The materials are clear and helpful, but internet connection can be slow."]),
+                ("Riley Mendoza", "College students", ["4", "5", "Communication is good and instructors respond quickly."]),
+                ("Casey Flores", "Working students", ["3", "3", "It is difficult when activities and deadlines are confusing."]),
+            ],
+        },
+    ]
+
+    for item in demo_surveys:
+        survey = Survey.query.filter_by(owner_id=user_id, title=item["title"]).first()
+        if survey:
+            continue
+        survey = Survey(
+            title=item["title"],
+            description=item["description"],
+            interview_type=item["interview_type"],
+            interview_mode=item["interview_mode"],
+            language=item["language"],
+            owner_id=user_id,
+        )
+        db.session.add(survey)
+        db.session.flush()
+        questions = []
+        for position, (question_text, question_type, category) in enumerate(item["questions"], start=1):
+            question = Question(
+                survey_id=survey.id,
+                text=question_text,
+                question_type=question_type,
+                category=category,
+                position=position,
+            )
+            db.session.add(question)
+            questions.append(question)
+        db.session.flush()
+
+        for respondent_name, respondent_group, answer_values in item["responses"]:
+            response = Response(
+                survey_id=survey.id,
+                respondent_name=respondent_name,
+                respondent_group=respondent_group,
+            )
+            db.session.add(response)
+            db.session.flush()
+            for question, answer_text in zip(questions, answer_values):
+                db.session.add(Answer(
+                    response_id=response.id,
+                    question_id=question.id,
+                    answer_text=answer_text,
+                ))
+    db.session.commit()
+
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    # Add sample content only when a user visits the dashboard. Existing surveys are preserved.
+    add_demo_data_for_user(session["user_id"])
     surveys = Survey.query.filter_by(owner_id=session["user_id"]).order_by(Survey.created_at.desc()).all()
     survey_ids = [s.id for s in surveys]
     response_count = Response.query.filter(Response.survey_id.in_(survey_ids)).count() if survey_ids else 0
