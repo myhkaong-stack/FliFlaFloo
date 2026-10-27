@@ -405,7 +405,7 @@ def generate_questions():
     )
     try:
         from google import genai
-        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"], http_options={"timeout": 20000})
         result = generate_with_model_fallback(client, prompt)
         generated = (getattr(result, "text", None) or "").strip()
         questions = []
