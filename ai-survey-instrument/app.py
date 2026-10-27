@@ -259,9 +259,18 @@ def add_demo_data_for_user(user_id):
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    # Add sample content only when a user visits the dashboard. Existing surveys are preserved.
-    add_demo_data_for_user(session["user_id"])
-    surveys = Survey.query.filter_by(owner_id=session["user_id"]).order_by(Survey.created_at.desc()).all()
+    # A browser may still hold a session from an older database. Never create
+    # surveys for a user ID that does not exist in the currently connected DB.
+    user_id = session.get("user_id")
+    user = db.session.get(User, user_id) if user_id is not None else None
+    if user is None:
+        session.clear()
+        flash("Your session is no longer valid. Please log in again.", "warning")
+        return redirect(url_for("login"))
+
+    # Add sample content only when a valid user visits the dashboard.
+    add_demo_data_for_user(user.id)
+    surveys = Survey.query.filter_by(owner_id=user.id).order_by(Survey.created_at.desc()).all()
     survey_ids = [s.id for s in surveys]
     response_count = Response.query.filter(Response.survey_id.in_(survey_ids)).count() if survey_ids else 0
     question_count = Question.query.join(Survey).filter(Survey.owner_id == session["user_id"]).count()
