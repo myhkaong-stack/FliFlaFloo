@@ -1,0 +1,11 @@
+{
+  "name": "FliFlaFloo AI Survey Instrument",
+  "short_name": "FliFlaFloo",
+  "description": "Create surveys and review research insights.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#11182b",
+  "icons": []
+}
