@@ -19,6 +19,27 @@
 <div class="col-md-2"><label class="form-label" for="end_date">To</label><input class="form-control" type="date" id="end_date" name="end_date" value="{{ end_date }}"></div>
 <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Go</button></div><div class="col-12"><a href="{{ url_for('reports') }}">Clear filters</a></div>
 </form></div></div>
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-4">
+    <h2 class="h5 fw-bold">Responses by survey</h2>
+    <p class="small text-secondary">Compare the number of submitted responses for each survey in the current filtered results.</p>
+    {% if survey_summaries %}<div style="height:320px"><canvas id="surveyResponsesChart" aria-label="Bar chart comparing responses by survey"></canvas></div>{% else %}<p class="text-secondary mb-0">Create a survey to see the chart.</p>{% endif %}
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const canvas = document.getElementById("surveyResponsesChart");
+  if (!canvas) return;
+  const labels = {{ survey_summaries|map(attribute='survey.title')|list|tojson }};
+  const counts = {{ survey_summaries|map(attribute='responses')|list|tojson }};
+  new Chart(canvas, {
+    type: "bar",
+    data: {labels: labels, datasets: [{label: "Responses", data: counts, backgroundColor: "#5b6ee1", borderRadius: 6}]},
+    options: {responsive: true, maintainAspectRatio: false, scales: {y: {beginAtZero: true, ticks: {precision: 0}}}, plugins: {legend: {display: false}}}
+  });
+});
+</script>
 <div class="card border-0 shadow-sm"><div class="card-body p-4"><h2 class="h5 fw-bold mb-3">Your survey reports</h2>
 {% if survey_summaries %}<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Survey</th><th>Type</th><th>Mode</th><th>Questions</th><th>Responses</th><th>Latest response</th><th></th></tr></thead><tbody>
 {% for item in survey_summaries %}<tr><td><strong>{{ item.survey.title }}</strong><div class="small text-secondary">{{ item.survey.language }}</div></td><td>{{ item.survey.interview_type }}</td><td>{{ item.survey.interview_mode }}</td><td>{{ item.questions }}</td><td>{{ item.responses }}</td><td>{{ item.latest_response.strftime('%Y-%m-%d') if item.latest_response else '—' }}</td><td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('analytics', survey_id=item.survey.id) }}">View analytics</a></td></tr>{% endfor %}
